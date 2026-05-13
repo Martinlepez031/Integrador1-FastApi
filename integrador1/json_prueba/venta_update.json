@@ -1,0 +1,8 @@
+{
+  "cliente": "Juan Perez Actualizado",
+  "producto": "Silla ergonómica",
+  "cantidad": 3,
+  "precio_unitario": 180000,
+  "fecha": "2026-05-14",
+  "estado": "pendiente"
+}

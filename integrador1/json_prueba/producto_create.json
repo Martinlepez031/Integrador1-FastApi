@@ -1,0 +1,8 @@
+{
+  "nombre": "Silla de oficina",
+  "categoria": "MUE-01",
+  "precio": 150000,
+  "stock": 20,
+  "stock_minimo": 5,
+  "activo": true
+}

@@ -1,58 +1,67 @@
 from typing import List, Optional
-from .schemas import ProductoCreate, ProductoRead
+from sqlalchemy.orm import Session
 
-# Simulamos que la BD guarda objetos tipo ProductoRead (con ID asignado)
-db_productos: List[ProductoRead] = []
-id_counter = 1
+from .schemas import ProductoCreate
+from .models import Producto
 
 
-def crear(data: ProductoCreate) -> ProductoRead:
-    global id_counter
-    nuevo = ProductoRead(id=id_counter, **data.model_dump())
-    db_productos.append(nuevo)
-    id_counter += 1
+def crear(db: Session, data: ProductoCreate) -> Producto:
+    nuevo = Producto(**data.model_dump())
+
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+
     return nuevo
 
 
-def obtener_todos(skip: int, limit: int) -> List[ProductoRead]:
-    return db_productos[skip : skip + limit]
+def obtener_todos(db: Session, skip: int, limit: int) -> List[Producto]:
+    return db.query(Producto).offset(skip).limit(limit).all()
 
 
-def obtener_por_id(id: int) -> Optional[ProductoRead]:
-    for p in db_productos:
-        if p.id == id:
-            return p
-    return None
+def obtener_por_id(db: Session, id: int) -> Optional[Producto]:
+    return db.query(Producto).filter(Producto.id == id).first()
 
 
-def actualizar_total(id: int, data: ProductoCreate) -> Optional[ProductoRead]:
-    # Reemplazo total: Requiere todos los campos validables (ProductoCreate)
-    for index, p in enumerate(db_productos):
-        if p.id == id:
-            producto_actualizado = ProductoRead(id=id, **data.model_dump())
-            db_productos[index] = producto_actualizado
-            return producto_actualizado
-    return None
+def actualizar_total(db: Session, id: int, data: ProductoCreate) -> Optional[Producto]:
+    producto = obtener_por_id(db, id)
 
-
-def desactivar(id: int) -> Optional[ProductoRead]:
-    # Borrado lógico: Solo altera el estado 'activo'
-    for index, p in enumerate(db_productos):
-        if p.id == id:
-            p_dict = p.model_dump()
-            p_dict["activo"] = False
-            producto_actualizado = ProductoRead(**p_dict)
-            db_productos[index] = producto_actualizado
-            return producto_actualizado
-    return None
-
-
-def obtener_estado_stock(id: int) -> Optional[dict]:
-    producto = obtener_por_id(id)
     if not producto:
         return None
 
-    # La lógica de negocio vive aquí
+    producto.nombre = data.nombre
+    producto.categoria = data.categoria
+    producto.precio = data.precio
+    producto.stock = data.stock
+    producto.stock_minimo = data.stock_minimo
+    producto.activo = data.activo
+
+    db.commit()
+    db.refresh(producto)
+
+    return producto
+
+
+def desactivar(db: Session, id: int) -> Optional[Producto]:
+    producto = obtener_por_id(db, id)
+
+    if not producto:
+        return None
+
+    producto.activo = False
+
+    db.commit()
+    db.refresh(producto)
+
+    return producto
+
+
+def obtener_estado_stock(db: Session, id: int) -> Optional[dict]:
+    producto = obtener_por_id(db, id)
+
+    if not producto:
+        return None
+
     alerta_stock = producto.stock < producto.stock_minimo
 
     return {

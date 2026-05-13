@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
 
@@ -12,11 +12,10 @@ class ProductoBase(BaseModel):
 
 
 class ProductoCreate(ProductoBase):
-    pass  # Exige todos los campos obligatorios de Base
+    pass
 
 
 class ProductoUpdate(BaseModel):
-    # Opcional: Se usa si en el futuro se implementa PATCH (actualización parcial)
     nombre: Optional[str] = None
     categoria: Optional[str] = Field(None, pattern=r"^[A-Z]{3}-\d{2}$")
     precio: Optional[float] = Field(None, gt=0)
@@ -26,7 +25,9 @@ class ProductoUpdate(BaseModel):
 
 
 class ProductoRead(ProductoBase):
-    id: int  # Contrato de salida: siempre incluye el ID generado
+    id: int
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProductoStockResponse(BaseModel):

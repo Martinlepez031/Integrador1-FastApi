@@ -1,24 +1,20 @@
 from datetime import date
 from typing import List, Optional
 
-from .schemas import VentaCreate, VentaUpdate, VentaRead, EstadoVenta
+from sqlalchemy.orm import Session
 
-
-ventas: List[VentaRead] = []
-contador_id = 1
+from .schemas import VentaCreate, VentaUpdate, EstadoVenta
+from .models import Venta
 
 
 def calcular_total(cantidad: int, precio_unitario: float) -> float:
     return cantidad * precio_unitario
 
 
-def crear(venta: VentaCreate) -> VentaRead:
-    global contador_id
-
+def crear(db: Session, venta: VentaCreate) -> Venta:
     total = calcular_total(venta.cantidad, venta.precio_unitario)
 
-    nueva_venta = VentaRead(
-        id=contador_id,
+    nueva_venta = Venta(
         cliente=venta.cliente,
         producto=venta.producto,
         cantidad=venta.cantidad,
@@ -29,13 +25,15 @@ def crear(venta: VentaCreate) -> VentaRead:
         activo=True,
     )
 
-    ventas.append(nueva_venta)
-    contador_id += 1
+    db.add(nueva_venta)
+    db.commit()
+    db.refresh(nueva_venta)
 
     return nueva_venta
 
 
 def obtener_todas(
+    db: Session,
     skip: int = 0,
     limit: int = 10,
     cliente: Optional[str] = None,
@@ -44,162 +42,152 @@ def obtener_todas(
     fecha_hasta: Optional[date] = None,
     monto_min: Optional[float] = None,
     monto_max: Optional[float] = None,
-) -> List[VentaRead]:
+) -> List[Venta]:
 
-    resultado = [venta for venta in ventas if venta.activo]
+    query = db.query(Venta).filter(Venta.activo == True)
 
     if cliente:
-        resultado = [
-            venta for venta in resultado
-            if cliente.lower() in venta.cliente.lower()
-        ]
+        query = query.filter(Venta.cliente.ilike(f"%{cliente}%"))
 
     if estado:
-        resultado = [
-            venta for venta in resultado
-            if venta.estado == estado
-        ]
+        query = query.filter(Venta.estado == estado)
 
     if fecha_desde:
-        resultado = [
-            venta for venta in resultado
-            if venta.fecha >= fecha_desde
-        ]
+        query = query.filter(Venta.fecha >= fecha_desde)
 
     if fecha_hasta:
-        resultado = [
-            venta for venta in resultado
-            if venta.fecha <= fecha_hasta
-        ]
+        query = query.filter(Venta.fecha <= fecha_hasta)
 
     if monto_min is not None:
-        resultado = [
-            venta for venta in resultado
-            if venta.total >= monto_min
-        ]
+        query = query.filter(Venta.total >= monto_min)
 
     if monto_max is not None:
-        resultado = [
-            venta for venta in resultado
-            if venta.total <= monto_max
-        ]
+        query = query.filter(Venta.total <= monto_max)
 
-    return resultado[skip: skip + limit]
+    return query.offset(skip).limit(limit).all()
 
 
-def obtener_por_id(id: int) -> Optional[VentaRead]:
-    for venta in ventas:
-        if venta.id == id and venta.activo:
-            return venta
-
-    return None
-
-
-def actualizar_total(id: int, venta_actualizada: VentaCreate) -> Optional[VentaRead]:
-    for index, venta in enumerate(ventas):
-        if venta.id == id and venta.activo:
-
-            if venta.estado == EstadoVenta.confirmada:
-                return None
-
-            if venta.estado == EstadoVenta.cancelada:
-                return None
-
-            total = calcular_total(
-                venta_actualizada.cantidad,
-                venta_actualizada.precio_unitario
-            )
-
-            ventas[index] = VentaRead(
-                id=id,
-                cliente=venta_actualizada.cliente,
-                producto=venta_actualizada.producto,
-                cantidad=venta_actualizada.cantidad,
-                precio_unitario=venta_actualizada.precio_unitario,
-                total=total,
-                fecha=venta_actualizada.fecha,
-                estado=venta_actualizada.estado,
-                activo=True,
-            )
-
-            return ventas[index]
-
-    return None
+def obtener_por_id(db: Session, id: int) -> Optional[Venta]:
+    return db.query(Venta).filter(
+        Venta.id == id,
+        Venta.activo == True
+    ).first()
 
 
-def actualizar_parcial(id: int, datos: VentaUpdate) -> Optional[VentaRead]:
-    for index, venta in enumerate(ventas):
-        if venta.id == id and venta.activo:
+def actualizar_total(
+    db: Session,
+    id: int,
+    venta_actualizada: VentaCreate
+) -> Optional[Venta]:
 
-            if venta.estado == EstadoVenta.confirmada:
-                return None
+    venta = obtener_por_id(db, id)
 
-            if venta.estado == EstadoVenta.cancelada:
-                return None
+    if not venta:
+        return None
 
-            datos_actualizados = venta.model_dump()
-            nuevos_datos = datos.model_dump(exclude_unset=True)
+    if venta.estado == EstadoVenta.confirmada:
+        return None
 
-            datos_actualizados.update(nuevos_datos)
+    if venta.estado == EstadoVenta.cancelada:
+        return None
 
-            datos_actualizados["total"] = calcular_total(
-                datos_actualizados["cantidad"],
-                datos_actualizados["precio_unitario"]
-            )
+    venta.cliente = venta_actualizada.cliente
+    venta.producto = venta_actualizada.producto
+    venta.cantidad = venta_actualizada.cantidad
+    venta.precio_unitario = venta_actualizada.precio_unitario
+    venta.total = calcular_total(
+        venta_actualizada.cantidad,
+        venta_actualizada.precio_unitario
+    )
+    venta.fecha = venta_actualizada.fecha
+    venta.estado = venta_actualizada.estado
+    venta.activo = True
 
-            ventas[index] = VentaRead(**datos_actualizados)
+    db.commit()
+    db.refresh(venta)
 
-            return ventas[index]
-
-    return None
-
-
-def desactivar(id: int) -> Optional[VentaRead]:
-    for index, venta in enumerate(ventas):
-        if venta.id == id and venta.activo:
-
-            if venta.estado == EstadoVenta.confirmada:
-                return None
-
-            venta_desactivada = venta.model_copy(update={"activo": False})
-            ventas[index] = venta_desactivada
-
-            return venta_desactivada
-
-    return None
+    return venta
 
 
-def confirmar(id: int) -> Optional[VentaRead]:
-    for index, venta in enumerate(ventas):
-        if venta.id == id and venta.activo:
+def actualizar_parcial(
+    db: Session,
+    id: int,
+    datos: VentaUpdate
+) -> Optional[Venta]:
 
-            if venta.estado == EstadoVenta.cancelada:
-                return None
+    venta = obtener_por_id(db, id)
 
-            venta_confirmada = venta.model_copy(
-                update={"estado": EstadoVenta.confirmada}
-            )
+    if not venta:
+        return None
 
-            ventas[index] = venta_confirmada
+    if venta.estado == EstadoVenta.confirmada:
+        return None
 
-            return venta_confirmada
+    if venta.estado == EstadoVenta.cancelada:
+        return None
 
-    return None
+    nuevos_datos = datos.model_dump(exclude_unset=True)
+
+    for campo, valor in nuevos_datos.items():
+        setattr(venta, campo, valor)
+
+    venta.total = calcular_total(
+        venta.cantidad,
+        venta.precio_unitario
+    )
+
+    db.commit()
+    db.refresh(venta)
+
+    return venta
 
 
-def cancelar(id: int) -> Optional[VentaRead]:
-    for index, venta in enumerate(ventas):
-        if venta.id == id and venta.activo:
+def desactivar(db: Session, id: int) -> Optional[Venta]:
+    venta = obtener_por_id(db, id)
 
-            if venta.estado == EstadoVenta.confirmada:
-                return None
+    if not venta:
+        return None
 
-            venta_cancelada = venta.model_copy(
-                update={"estado": EstadoVenta.cancelada}
-            )
+    if venta.estado == EstadoVenta.confirmada:
+        return None
 
-            ventas[index] = venta_cancelada
+    venta.activo = False
 
-            return venta_cancelada
+    db.commit()
+    db.refresh(venta)
 
-    return None
+    return venta
+
+
+def confirmar(db: Session, id: int) -> Optional[Venta]:
+    venta = obtener_por_id(db, id)
+
+    if not venta:
+        return None
+
+    if venta.estado == EstadoVenta.cancelada:
+        return None
+
+    venta.estado = EstadoVenta.confirmada
+
+    db.commit()
+    db.refresh(venta)
+
+    return venta
+
+
+def cancelar(db: Session, id: int) -> Optional[Venta]:
+    venta = obtener_por_id(db, id)
+
+    if not venta:
+        return None
+
+    if venta.estado == EstadoVenta.confirmada:
+        return None
+
+    venta.estado = EstadoVenta.cancelada
+
+    db.commit()
+    db.refresh(venta)
+
+    return venta

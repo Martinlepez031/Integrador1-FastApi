@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
 
@@ -20,3 +20,5 @@ class CategoriaUpdate(BaseModel):
 
 class CategoriaRead(CategoriaBase):
     id: int
+
+    model_config = ConfigDict(from_attributes=True)

@@ -1,0 +1,8 @@
+{
+  "cliente": "Juan Perez",
+  "producto": "Silla de oficina",
+  "cantidad": 2,
+  "precio_unitario": 150000,
+  "fecha": "2026-05-13",
+  "estado": "pendiente"
+}

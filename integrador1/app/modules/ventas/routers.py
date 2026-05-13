@@ -1,8 +1,10 @@
 from datetime import date
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Path, Query, status
+from fastapi import APIRouter, HTTPException, Path, Query, status, Depends
+from sqlalchemy.orm import Session
 
+from app.core.database import get_db
 from . import schemas, services
 
 
@@ -14,8 +16,11 @@ router = APIRouter(prefix="/ventas", tags=["Ventas"])
     response_model=schemas.VentaRead,
     status_code=status.HTTP_201_CREATED,
 )
-def alta_venta(venta: schemas.VentaCreate):
-    return services.crear(venta)
+def alta_venta(
+    venta: schemas.VentaCreate,
+    db: Session = Depends(get_db)
+):
+    return services.crear(db, venta)
 
 
 @router.get(
@@ -32,8 +37,10 @@ def listar_ventas(
     fecha_hasta: Optional[date] = Query(None),
     monto_min: Optional[float] = Query(None, ge=0),
     monto_max: Optional[float] = Query(None, ge=0),
+    db: Session = Depends(get_db),
 ):
     return services.obtener_todas(
+        db=db,
         skip=skip,
         limit=limit,
         cliente=cliente,
@@ -50,8 +57,11 @@ def listar_ventas(
     response_model=schemas.VentaRead,
     status_code=status.HTTP_200_OK,
 )
-def detalle_venta(id: int = Path(..., gt=0)):
-    venta = services.obtener_por_id(id)
+def detalle_venta(
+    id: int = Path(..., gt=0),
+    db: Session = Depends(get_db)
+):
+    venta = services.obtener_por_id(db, id)
 
     if not venta:
         raise HTTPException(
@@ -70,8 +80,9 @@ def detalle_venta(id: int = Path(..., gt=0)):
 def actualizar_venta(
     venta: schemas.VentaCreate,
     id: int = Path(..., gt=0),
+    db: Session = Depends(get_db)
 ):
-    actualizada = services.actualizar_total(id, venta)
+    actualizada = services.actualizar_total(db, id, venta)
 
     if not actualizada:
         raise HTTPException(
@@ -90,8 +101,9 @@ def actualizar_venta(
 def actualizar_parcial_venta(
     venta: schemas.VentaUpdate,
     id: int = Path(..., gt=0),
+    db: Session = Depends(get_db)
 ):
-    actualizada = services.actualizar_parcial(id, venta)
+    actualizada = services.actualizar_parcial(db, id, venta)
 
     if not actualizada:
         raise HTTPException(
@@ -107,8 +119,11 @@ def actualizar_parcial_venta(
     response_model=schemas.VentaRead,
     status_code=status.HTTP_200_OK,
 )
-def borrado_logico(id: int = Path(..., gt=0)):
-    desactivada = services.desactivar(id)
+def borrado_logico(
+    id: int = Path(..., gt=0),
+    db: Session = Depends(get_db)
+):
+    desactivada = services.desactivar(db, id)
 
     if not desactivada:
         raise HTTPException(
@@ -124,8 +139,11 @@ def borrado_logico(id: int = Path(..., gt=0)):
     response_model=schemas.VentaRead,
     status_code=status.HTTP_200_OK,
 )
-def confirmar_venta(id: int = Path(..., gt=0)):
-    confirmada = services.confirmar(id)
+def confirmar_venta(
+    id: int = Path(..., gt=0),
+    db: Session = Depends(get_db)
+):
+    confirmada = services.confirmar(db, id)
 
     if not confirmada:
         raise HTTPException(
@@ -141,8 +159,11 @@ def confirmar_venta(id: int = Path(..., gt=0)):
     response_model=schemas.VentaRead,
     status_code=status.HTTP_200_OK,
 )
-def cancelar_venta(id: int = Path(..., gt=0)):
-    cancelada = services.cancelar(id)
+def cancelar_venta(
+    id: int = Path(..., gt=0),
+    db: Session = Depends(get_db)
+):
+    cancelada = services.cancelar(db, id)
 
     if not cancelada:
         raise HTTPException(

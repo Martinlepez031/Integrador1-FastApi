@@ -1,0 +1,8 @@
+{
+  "nombre": "Notebook Lenovo",
+  "categoria": "TEC-01",
+  "precio": 850000,
+  "stock": 10,
+  "stock_minimo": 2,
+  "activo": true
+}
