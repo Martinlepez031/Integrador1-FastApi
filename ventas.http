@@ -1,0 +1,216 @@
+### =========================
+### VENTAS - PRUEBAS HTTP
+### =========================
+
+
+### Crear venta pendiente
+POST http://127.0.0.1:8000/ventas/
+Content-Type: application/json
+
+{
+  "cliente": "Juan Perez",
+  "producto": "Notebook Lenovo",
+  "cantidad": 2,
+  "precio_unitario": 850000,
+  "fecha": "2026-05-13",
+  "estado": "pendiente"
+}
+
+
+### Crear otra venta pendiente
+POST http://127.0.0.1:8000/ventas/
+Content-Type: application/json
+
+{
+  "cliente": "Maria Gomez",
+  "producto": "Mouse Logitech",
+  "cantidad": 5,
+  "precio_unitario": 25000,
+  "fecha": "2026-05-13",
+  "estado": "pendiente"
+}
+
+
+### Crear venta confirmada
+POST http://127.0.0.1:8000/ventas/
+Content-Type: application/json
+
+{
+  "cliente": "Carlos Lopez",
+  "producto": "Monitor Samsung",
+  "cantidad": 1,
+  "precio_unitario": 300000,
+  "fecha": "2026-05-10",
+  "estado": "confirmada"
+}
+
+
+### Listar todas las ventas
+GET http://127.0.0.1:8000/ventas/
+
+
+### Listar ventas con paginación
+GET http://127.0.0.1:8000/ventas/?skip=0&limit=5
+
+
+### Buscar ventas por cliente
+GET http://127.0.0.1:8000/ventas/?cliente=juan
+
+
+### Filtrar ventas por estado pendiente
+GET http://127.0.0.1:8000/ventas/?estado=pendiente
+
+
+### Filtrar ventas por estado confirmada
+GET http://127.0.0.1:8000/ventas/?estado=confirmada
+
+
+### Filtrar ventas por fecha desde
+GET http://127.0.0.1:8000/ventas/?fecha_desde=2026-05-01
+
+
+### Filtrar ventas por fecha hasta
+GET http://127.0.0.1:8000/ventas/?fecha_hasta=2026-05-13
+
+
+### Filtrar ventas por rango de fechas
+GET http://127.0.0.1:8000/ventas/?fecha_desde=2026-05-01&fecha_hasta=2026-05-13
+
+
+### Filtrar ventas por monto mínimo
+GET http://127.0.0.1:8000/ventas/?monto_min=100000
+
+
+### Filtrar ventas por monto máximo
+GET http://127.0.0.1:8000/ventas/?monto_max=500000
+
+
+### Filtrar ventas por rango de monto
+GET http://127.0.0.1:8000/ventas/?monto_min=100000&monto_max=1000000
+
+
+### Obtener venta por ID
+GET http://127.0.0.1:8000/ventas/1
+
+
+### Actualizar venta completa
+PUT http://127.0.0.1:8000/ventas/1
+Content-Type: application/json
+
+{
+  "cliente": "Juan Perez Actualizado",
+  "producto": "Notebook Lenovo ThinkPad",
+  "cantidad": 3,
+  "precio_unitario": 900000,
+  "fecha": "2026-05-14",
+  "estado": "pendiente"
+}
+
+
+### Actualizar venta parcial
+PATCH http://127.0.0.1:8000/ventas/1
+Content-Type: application/json
+
+{
+  "cantidad": 4,
+  "precio_unitario": 920000
+}
+
+
+### Actualizar solo el cliente
+PATCH http://127.0.0.1:8000/ventas/1
+Content-Type: application/json
+
+{
+  "cliente": "Juan Carlos Perez"
+}
+
+
+### Confirmar venta
+PUT http://127.0.0.1:8000/ventas/1/confirmar
+
+
+### Cancelar venta
+PUT http://127.0.0.1:8000/ventas/2/cancelar
+
+
+### Desactivar venta / borrado lógico
+PUT http://127.0.0.1:8000/ventas/2/desactivar
+
+
+### Error: venta inexistente
+GET http://127.0.0.1:8000/ventas/999
+
+
+### Error: ID inválido
+GET http://127.0.0.1:8000/ventas/0
+
+
+### Error: cliente demasiado corto
+POST http://127.0.0.1:8000/ventas/
+Content-Type: application/json
+
+{
+  "cliente": "A",
+  "producto": "Teclado",
+  "cantidad": 1,
+  "precio_unitario": 50000,
+  "fecha": "2026-05-13",
+  "estado": "pendiente"
+}
+
+
+### Error: cantidad inválida
+POST http://127.0.0.1:8000/ventas/
+Content-Type: application/json
+
+{
+  "cliente": "Cliente Error",
+  "producto": "Teclado",
+  "cantidad": 0,
+  "precio_unitario": 50000,
+  "fecha": "2026-05-13",
+  "estado": "pendiente"
+}
+
+
+### Error: precio unitario inválido
+POST http://127.0.0.1:8000/ventas/
+Content-Type: application/json
+
+{
+  "cliente": "Cliente Error",
+  "producto": "Teclado",
+  "cantidad": 1,
+  "precio_unitario": 0,
+  "fecha": "2026-05-13",
+  "estado": "pendiente"
+}
+
+
+### Error: estado inválido
+POST http://127.0.0.1:8000/ventas/
+Content-Type: application/json
+
+{
+  "cliente": "Cliente Error",
+  "producto": "Teclado",
+  "cantidad": 1,
+  "precio_unitario": 50000,
+  "fecha": "2026-05-13",
+  "estado": "finalizada"
+}
+
+
+### Error: fecha inválida
+POST http://127.0.0.1:8000/ventas/
+Content-Type: application/json
+
+{
+  "cliente": "Cliente Error",
+  "producto": "Teclado",
+  "cantidad": 1,
+  "precio_unitario": 50000,
+  "fecha": "13/05/2026",
+  "estado": "pendiente"
+}
